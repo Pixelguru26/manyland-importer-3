@@ -11,8 +11,11 @@ Usage is simple:
   - Copy the script (contents of PixelCopyImage.js) into the console and run it
 
 The script is now enabled, and ready to copy images via the following function:
+
 `pixelCopyImage(string url[, bool pixelart[, bool pixelcolor[, bool local[, int[] srcrect]]]]);`
+
 For those of you who don't speak syntax formatting, `url` is the only required parameter. Here's an example, showing the default parameters:
+
 `pixelCopyImage('https://gpm.nasa.gov/education/sites/default/files/article_images/globe_west_2048.jpg', false, false, false, [0,0,1,1]);`
 
 An explanation of each parameter is as follows:
