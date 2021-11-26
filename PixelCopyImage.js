@@ -19,7 +19,7 @@
 	(async () => {
 		if (typeof Deobfuscator === 'undefined') 
 			await $.getScript("https://cdn.jsdelivr.net/gh/parseml/many-deobf@latest/deobf.js");
-		start();	
+		start();
 	})();
 
 	function start() {
@@ -46,7 +46,7 @@ function getPalette(image, src, pixelart, pixelcolor) {
 	let pixel = null;
 	for (let i = 0; i < src[2]*src[3]; i++) {
 		pixel = Jimp.intToRGBA(image.getPixelColor(src[0]+i%image.bitmap.width, src[1]+Math.floor(i/image.bitmap.width)));
-		if (pixel.a === 0) {
+		if (pixel.a < 10) {
 			// fix nonstandard transparency colors
 			flatImage[i] = [0,0,0];
 		} else {
@@ -69,10 +69,15 @@ function getPalette(image, src, pixelart, pixelcolor) {
 	for (let i = 0; i < flatImage.length; i++) {
 		pixel = pixelcolor?flatImage[i]:colorMap.map(flatImage[i]);
 		color = Jimp.rgbaToInt(pixel[0],pixel[1],pixel[2],alphaImage[i]);
+		if (alphaImage[i] < 10) color = 0;
 		if (!(color in colorIndex)) {
 			colorIndex[color] = palette.push(color) - 1;
 		}
-		indexImage[i] = colorIndex[color];
+		if (colorIndex[color] < 56) {
+			indexImage[i] = colorIndex[color];	
+		} else {
+			indexImage[i] = 11;
+		}
 		// index = findColor(palette, color.r, color.g, color.b, color.a);
 		// if (index === -1) {
 		// 	index = palette.push(color);
@@ -118,7 +123,7 @@ function convert(indexImage, w, h, palette) {
 	[palette[0], palette[11]] = [palette[11], palette[0]];
 	let palette1 = [];
 	let pixel = null;
-	for (let i = 0; i < palette.length; i++) {
+	for (let i = 0; i < palette.length && i < 56; i++) {
 		pixel = Jimp.intToRGBA(palette[i]);
 		palette1[i] = {alpha: pixel.a/255, b: pixel.b, g: pixel.g, r: pixel.r};
 	}
