@@ -130,10 +130,7 @@ function convert(indexImage, w, h, palette) {
 	let pixel = null;
 	for (let i = start; i < palette.length && i < 56; i++) {
 		pixel = Jimp.intToRGBA(palette[i]);
-		palette1[i] = {alpha: pixel.a/255, b: pixel.b, g: pixel.g, r: pixel.r};
-	}
-	if (palette.length <= 11) {
-		palette1[11] = {alpha: 0, b: 0, g: 0, r: 0};
+		palette1.push({alpha: pixel.a/255, b: pixel.b, g: pixel.g, r: pixel.r});
 	}
 	return [canv, palette1];
 }
