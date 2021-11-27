@@ -78,11 +78,6 @@ function getPalette(image, src, pixelart, pixelcolor) {
 		} else {
 			indexImage[i] = 11;
 		}
-		// index = findColor(palette, color.r, color.g, color.b, color.a);
-		// if (index === -1) {
-		// 	index = palette.push(color);
-		// }
-		// indexImage[i] = index;
 	}
 
 	return [indexImage, palette];
@@ -93,6 +88,14 @@ function convert(indexImage, w, h, palette) {
 	let screen = ig.game.painter.data.pixels;
 	let size = ig.game.painter.tileWidth;
 	let canv = [];
+	
+	// A stupid special case for low palette sizes
+	let coloroffset = 0;
+	if (palette.length > 11) {
+		[palette[0], palette[11]] = [palette[11], palette[0]];
+	} else {
+		coloroffset = 1;
+	}
 
 	// here we go
 	let index = 0;
@@ -112,23 +115,16 @@ function convert(indexImage, w, h, palette) {
 						id = 11;
 					}
 					// write pixel into canvas
-					canv[frame][y].push(id);
+					canv[frame][y].push(id - coloroffset);
 				} else {
 					canv[frame][y].push(11);
 				}
 			}
 		}
 	}
-
-	let start = 0;
-	if (palette.length > 11) {
-		[palette[0], palette[11]] = [palette[11], palette[0]];
-	} else {
-		start = 1;
-	}
 	let palette1 = [];
 	let pixel = null;
-	for (let i = start; i < palette.length && i < 56; i++) {
+	for (let i = coloroffset; i < palette.length && i < 56; i++) {
 		pixel = Jimp.intToRGBA(palette[i]);
 		palette1.push({alpha: pixel.a/255, b: pixel.b, g: pixel.g, r: pixel.r});
 	}
@@ -145,8 +141,9 @@ function write(canv, palette) {
 	pd.pixels = canv;
 	pd.colors = palette;
 	for (let i = palette.length; i < 56; i++) {
-		pd.colors[i] = {r: 255, g: 255, b: 255, a: 1};
+		pd.colors[i] = {r: 255, g: 255, b: 255, alpha: 1};
 	}
+	pd.colors[11] = {r: 0, g: 0, b: 0, alpha: 0};
 
 	// Why do we need to rotate and flip everything? I don't know! Blame Zoltar!
 	p.flip = Deobfuscator.function(p, "this.tileWidth-c-1]"); // I have no idea what this does.
