@@ -84,6 +84,11 @@ function getPalette(image, src, pixelart, pixelcolor) {
 		// }
 		// indexImage[i] = index;
 	}
+	if (palette.length < 11) {
+		for (let i = palette.length; i < 11; i++) {
+			palette.push(0);
+		}
+	}
 
 	return [indexImage, palette];
 }
