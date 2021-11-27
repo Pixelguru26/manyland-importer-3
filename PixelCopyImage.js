@@ -86,7 +86,7 @@ function getPalette(image, src, pixelart, pixelcolor) {
 	}
 	if (palette.length < 12) {
 		for (let i = palette.length; i < 12; i++) {
-			palette.push(0);
+			palette.push(0xFFFFFFFF);
 		}
 	}
 
