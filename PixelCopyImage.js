@@ -84,11 +84,6 @@ function getPalette(image, src, pixelart, pixelcolor) {
 		// }
 		// indexImage[i] = index;
 	}
-	if (palette.length < 12) {
-		for (let i = palette.length; i < 12; i++) {
-			palette.push(0xFFFFFFFF);
-		}
-	}
 
 	return [indexImage, palette];
 }
@@ -125,12 +120,20 @@ function convert(indexImage, w, h, palette) {
 		}
 	}
 
-	[palette[0], palette[11]] = [palette[11], palette[0]];
+	let start = 0;
+	if (palette.length > 11) {
+		[palette[0], palette[11]] = [palette[11], palette[0]];
+	} else {
+		start = 1;
+	}
 	let palette1 = [];
 	let pixel = null;
-	for (let i = 0; i < palette.length && i < 56; i++) {
+	for (let i = start; i < palette.length && i < 56; i++) {
 		pixel = Jimp.intToRGBA(palette[i]);
 		palette1[i] = {alpha: pixel.a/255, b: pixel.b, g: pixel.g, r: pixel.r};
+	}
+	if (palette.length <= 11) {
+		palette1[11] = {alpha: 0, b: 0, g: 0, r: 0};
 	}
 	return [canv, palette1];
 }
