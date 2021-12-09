@@ -1,5 +1,4 @@
-
-
+var pixelCopyImage = await (async () => {
 // Libraries and requirements
 	// Getting Quantization Algorithm
 	if (typeof MMCQ === 'undefined') {
@@ -16,122 +15,213 @@
 		$.getScript('https://cdnjs.cloudflare.com/ajax/libs/jimp/0.12.0/jimp.min.js');
 	}
 	// Getting Deobf
+	function start() {
+		ig.game.alertDialog.prompt = Deobfuscator.function(ig.game.alertDialog, "if(!this.isOpen)")
+		ig.game.painter.rotatePixels = Deobfuscator.function(ig.game.painter, "(a);return a");
+	}
 	(async () => {
 		if (typeof Deobfuscator === 'undefined') 
 			await $.getScript("https://cdn.jsdelivr.net/gh/parseml/many-deobf@latest/deobf.js");
 		start();
 	})();
 
-	function start() {
-		ig.game.alertDialog.prompt = Deobfuscator.function(ig.game.alertDialog, "if(!this.isOpen)")
-		ig.game.painter.rotatePixels = Deobfuscator.function(ig.game.painter, "(a);return a");
+	// src: https://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c
+	function rgbToHsv(r, g, b){
+	    r = r/255, g = g/255, b = b/255;
+	    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+	    var h, s, v = max;
+
+	    var d = max - min;
+	    s = max == 0 ? 0 : d / max;
+
+	    if(max == min){
+	        h = 0; // achromatic
+	    }else{
+	        switch(max){
+	            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+	            case g: h = (b - r) / d + 2; break;
+	            case b: h = (r - g) / d + 4; break;
+	        }
+	        h /= 6;
+	    }
+
+	    return [h, s, v];
 	}
 
-// Indexing obfuscates readability when done inline
-function indexPixel(f, x, y, w, h, imgw, imgh) {
-	// Components broken up for further readability
-	let indexX = (x);
-	let indexY = (y)*imgw;
-	let indexFX = (f*w)%imgw;
-	let indexFY = Math.floor(f*w/imgw)*imgw*h;
-	return indexX + indexY + indexFX + indexFY;
-}
+class image {
+	constructor(jImage) {
+		this.jImage = jImage;
+	}
+	clear() {
+		// invalidates all cached data
+		this.flatImage = null;
+		this.paletteImage = null;
+		this.palette = null;
+		return this;
+	}
 
-// Stage 1
-function getPalette(image, src, pixelart, pixelcolor) {
-	let flatImage = [];
-	let alphaImage = [];
+	get dims() { return [this.jImage.bitmap.width, this.jImage.bitmap.height]; }
+	get w() { return this.jImage.bitmap.width; }
+	get h() { return this.jImage.bitmap.height; }
 
-	// flatten image for processing
-	let pixel = null;
-	for (let i = 0; i < src[2]*src[3]; i++) {
-		pixel = Jimp.intToRGBA(image.getPixelColor(src[0]+i%image.bitmap.width, src[1]+Math.floor(i/image.bitmap.width)));
-		if (pixel.a < 10) {
-			// fix nonstandard transparency colors
-			flatImage[i] = [0,0,0];
-		} else {
-			flatImage[i] = [pixel.r, pixel.g, pixel.b];
+	static paletteCompare(a, b) {
+		a = Jimp.intToRGBA(a);
+		b = Jimp.intToRGBA(b);
+		let hsva = rgbToHsv(a.r,a.g,a.b);
+		hsva[3] = a.a;
+		let hsvb = rgbToHsv(b.r,b.g,b.b);
+		hsvb[3] = b.a;
+		// swapping sat and val for optical order
+		[hsva[1], hsva[2]] = [hsva[2], hsva[1]];
+		[hsvb[1], hsvb[2]] = [hsvb[2], hsvb[1]];
+		// return b-a
+		let v;
+		for (let i = 0; i < hsva.length; i++) {
+			v = hsvb[i] - hsva[i];
+			if (v != 0) {
+				return v;
+			}
 		}
-		alphaImage[i] = pixel.a;
-	}
-	let colorMap = pixelcolor?null:MMCQ.quantize(flatImage, 56);
-
-	let palette = [];
-	let colorIndex = {};
-	let indexImage = [];
-
-	// add eraser
-	colorIndex[0] = palette.push(0) - 1;
-
-	// index colors
-	let color = 0;
-	let index = 0;
-	for (let i = 0; i < flatImage.length; i++) {
-		pixel = pixelcolor?flatImage[i]:colorMap.map(flatImage[i]);
-		color = Jimp.rgbaToInt(pixel[0],pixel[1],pixel[2],alphaImage[i]);
-		if (alphaImage[i] < 10) color = 0;
-		if (!(color in colorIndex)) {
-			colorIndex[color] = palette.push(color) - 1;
-		}
-		if (colorIndex[color] < 56) {
-			indexImage[i] = colorIndex[color];	
-		} else {
-			indexImage[i] = 11;
-		}
+		return 0;
 	}
 
-	return [indexImage, palette];
-}
+	getPixelColor(x, y) { return this.jImage.getPixelColor(x,y); }
 
-// Stage 2
-function convert(indexImage, w, h, palette) {
-	let screen = ig.game.painter.data.pixels;
-	let size = ig.game.painter.tileWidth;
-	let canv = [];
-	
-	// A stupid special case for low palette sizes
-	let coloroffset = 0;
-	if (palette.length > 11) {
-		[palette[0], palette[11]] = [palette[11], palette[0]];
-	} else {
-		coloroffset = 1;
+	crop(x, y, w, h) { this.clear().jImage.crop(x, y, w, h); }
+	resize(w, h) { this.clear().jImage.resize(w, h); }
+
+	flatten() {
+		let d = this.jImage.bitmap.data;
+		let flat = this.flatImage = [];
+		this.jImage.scan(0,0,this.w,this.h, (x, y, idx) => {
+			flat.push([d[idx + 0], d[idx + 1], d[idx + 2], d[idx + 3]]);
+		});
+		return flat;
 	}
 
-	// here we go
-	let index = 0;
-	let id = 0;
-	for (let frame = 0; frame < 9; frame++) {
-		canv.push([]);
-		for (let y = 0; y < size; y++) {
-			canv[frame].push([]);
-			for (let x = 0; x < size; x++) {
-				index = indexPixel(frame, x, y, size, size, w, h);
-				if (index < indexImage.length) {
-					id = indexImage[index];
-					// swap eraser to id 11
-					if (id === 11) {
-						id = 0;
-					} else if (id === 0) {
-						id = 11;
-					}
-					// write pixel into canvas
-					canv[frame][y].push(id - coloroffset);
-				} else {
-					canv[frame][y].push(11);
+	quantize(colors) {
+		let d = this.jImage.bitmap.data;
+		// may eventually be replaced with RgbQuant.js
+		let m = MMCQ.quantize(this.flatImage??this.flatten(), colors);
+		this.jImage.scan(0,0,this.w,this.h, (x, y, idx) => {
+			// map rgb values
+			var c = m.map([d[idx + 0],d[idx + 1],d[idx + 2]]);
+			// assign mapped values
+			d[idx + 0] = c[0];
+			d[idx + 1] = c[1];
+			d[idx + 2] = c[2];
+			// MMCQ.js doesn't handle alpha, so that's unchanged.
+		});
+		return this.clear();
+	}
+
+	getPalette(threshold) {
+		threshold = threshold??10;
+		let ci = {}; // color indexer
+		let ic = [];
+		let palette = this.palette = [];
+		// ensure image is flattened
+		this.flatImage??this.flatten();
+
+		let c;
+		for (let i = 0; i < this.flatImage.length; i++) {
+			c = Jimp.rgbaToInt(...this.flatImage[i]);
+
+			// crush transparent pixels!
+			if (this.flatImage[i][3] > threshold) {
+				// register color to indexer and palette
+				if (!(c in ci)) {
+					ci[c] = ic.push(c)-1;
 				}
 			}
 		}
+
+		// sort palette (gotta be pretty)
+		// may be moved to another method later
+		ic.sort(image.paletteCompare);
+		// add eraser
+		ic.splice(11, 0, 0x00000000);
+		// reregister palette to indexer
+		ci = {};
+		for (let i = 0; i < ic.length; i++) {
+			if (i < 56) {
+				ci[ic[i]] = i;
+				c = Jimp.intToRGBA(ic[i]);
+				c.alpha = c.a/255;
+				palette.push(c);
+			} else {
+				// erase all beyond palette count
+				ci[ic[i]] = 11;
+			}
+		}
+
+		// return [palette, indexer]
+		return [palette, ci];
 	}
-	let palette1 = [];
-	let pixel = null;
-	for (let i = coloroffset; i < palette.length && i < 56; i++) {
-		pixel = Jimp.intToRGBA(palette[i]);
-		palette1.push({alpha: pixel.a/255, b: pixel.b, g: pixel.g, r: pixel.r});
+
+	palettize(threshold) {
+		let [palette, indexer] = this.getPalette(threshold);
+		let paletteImage = this.paletteImage = [];
+		let flat = this.flatImage;
+		let v;
+		for (let i = 0; i < flat.length; i++) {
+			v = Jimp.rgbaToInt(...flat[i]);
+			paletteImage.push(indexer[v]??11);
+		}
+		return [paletteImage, palette];
 	}
-	return [canv, palette1];
+
+	getPixelIndex(x, y) {
+		if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
+			return x + y*this.w;
+		} else {
+			return -1;
+		}
+	}
+
+	getPixelPIndex(x, y) {
+		let index = this.getPixelIndex(x, y);
+		if (index > -1 && this.paletteImage) {
+			return this.paletteImage[index];
+		} else {
+			return 11;
+		}
+	}
 }
 
-// Stage 3
+// Component of indexing
+function frameOffset(fmode, index, imgw, imgh, framew, frameh) {
+	let imgwf = Math.ceil(imgw/framew);
+	let imghf = Math.ceil(imgh/frameh);
+	switch (fmode) {
+		case 0:
+			return [index%3, Math.floor(index/3)];
+		case 1:
+			return [index%imgwf, Math.floor(index/imgwf)];
+		default:
+			throw "Invalid framing mode: " + fmode;
+	}
+}
+
+function frame(fmode, img, framew, frameh, frames) {
+	let ret = [];
+	let off;
+	let index;
+	for (let frame = 0; frame < frames; frame++) {
+		ret.push([]);
+		off = frameOffset(fmode, frame, img.w, img.h, framew, frameh);
+		for (let y = 0; y < frameh; y++) {
+			ret[frame].push([]);
+			for (let x = 0; x < framew; x++) {
+				index = img.getPixelPIndex(x + off[0] * framew, y + off[1] * frameh);
+				ret[frame][y].push(index);
+			}
+		}
+	}
+	debug = ret;
+	return ret;
+}
+
 function write(canv, palette) {
 	// convenience variables
 	let p = ig.game.painter;
@@ -155,40 +245,56 @@ function write(canv, palette) {
 }
 
 // Main function
-async function pixelCopyImage(url, pixelart, pixelcolor, local, srcrect) {
+async function pixelCopyImage(url, pixelart, pixelcolor, fmode, srcrect) {
+	// default and variant arguments for fmode
+	// sorry in advance
+	var framingmodes = {
+		mli: 0, // special (and default) case for mli image imports.
+		row: 1 // all frames in a row
+	};
+	if (!(fmode in [0,1])) {
+		if (fmode in framingmodes) {
+			// fmode is enum
+			fmode = framingmodes[fmode];
+		} else {
+			// fmode is null or invalid
+			fmode = 0;
+		}
+	}; // fmode is now a valid number
 
 	let painterSize = ig.game.painter.tileWidth;
-	srcrect = srcrect??[0,0,1,1];
+
 	// Load image
-	let image = null;
-	if (local) {
-		// Note: I have no idea if this actually works.
-		//image = await Jimp.read(`file:///${url}`);
-		image = await Jimp.read(url);
-	} else {
-		image = await Jimp.read(`https://api.allorigins.win/raw?url=${url}`);
+	let img = null;
+	try {
+		img = await Jimp.read(`https://api.allorigins.win/raw?url=${url}`);
+	} catch (e) {
+		return ["Error in Jimp.read();",e];
 	}
+	img = new image(img);
 
 	// Resizing (in case of large images)
+	if (srcrect) {
+		img.crop(srcrect[0] * img.w, srcrect[1] * img.h, srcrect[2] * img.w, srcrect[3] * img.h);
+	}
 	if (!pixelart) {
 		if (ig.game.painter.data.type === "dynamicThing") {
-			await image.resize(Math.round(painterSize*3/srcrect[2]), Math.round(painterSize*3/srcrect[3]));
+			await img.resize(painterSize * 3, painterSize * 3);
 		} else {
-			await image.resize(Math.round(painterSize/srcrect[2]), Math.round(painterSize/srcrect[3]));
+			await img.resize(painterSize, painterSize);
 		}
 	}
-
-	// Srcrect alteration
-	srcrect[0] = srcrect[0] * image.bitmap.width;
-	srcrect[1] = srcrect[1] * image.bitmap.height;
-	srcrect[2] = srcrect[2] * image.bitmap.width;
-	srcrect[3] = srcrect[3] * image.bitmap.height;
 
 	if (ig.game.painter.data.type === "dynamicThing") {
 		ig.game.painter.data.prop.text = `0s: cells show, cells 1+2+3 up 58, cells 4+5+6 up 29, cells 1+4+7 left 29, cells 3+6+9 right 29`;
 	}
 
-	let [indexImage, palette1] = getPalette(image, srcrect, pixelart, pixelcolor);
-	let [canv, palette2] = convert(indexImage, srcrect[2], srcrect[3], palette1);
-	write(canv, palette2);
+	if (!pixelcolor) {
+		img.quantize(56);
+	}
+	img.palettize();
+	write(frame(fmode, img, painterSize, painterSize, 1), img.palette);
 }
+
+return pixelCopyImage;
+})();
