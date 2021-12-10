@@ -71,9 +71,6 @@ class image {
 		hsva[3] = a.a;
 		let hsvb = rgbToHsv(b.r,b.g,b.b);
 		hsvb[3] = b.a;
-		// swapping sat and val for optical order
-		[hsva[1], hsva[2]] = [hsva[2], hsva[1]];
-		[hsvb[1], hsvb[2]] = [hsvb[2], hsvb[1]];
 		// return b-a
 		let v;
 		for (let i = 0; i < hsva.length; i++) {
