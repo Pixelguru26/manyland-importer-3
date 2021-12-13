@@ -303,16 +303,15 @@ async function pixelCopyImages(urlarray, pixelart, pixelcolor) {
 	} catch (e) {
 		return ["Error in Jimp.read(); on image number "+i,e];
 	}
-	let img = new Jimp(painterSize*imgs.length, painterSize, 0x00000000, (err, image) => {});
+	let img = new image(new Jimp(painterSize*imgs.length, painterSize, 0x00000000, (err, image) => {}));
 	if (!pixelart) {
 		for (let i = 0; i < imgs.length; i++) {
 			await imgs[i].resize(painterSize, painterSize);
 		}
 	}
 	for (let i = 0; i < imgs.length; i++) {
-		await img.blit(imgs[i], i*painterSize, 0);
+		await img.jImage.blit(imgs[i].jImage, i*painterSize, 0);
 	}
-	img = new image(img);
 	if (!pixelcolor) {
 		img.quantize(56)
 	}
