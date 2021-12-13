@@ -1,4 +1,4 @@
-var pixelCopyImage = await (async () => {
+var [pixelCopyImage, pixelCopyImages] = await (async () => {
 // Libraries and requirements
 	// Getting Quantization Algorithm
 	if (typeof MMCQ === 'undefined') {
@@ -282,16 +282,43 @@ async function pixelCopyImage(url, pixelart, pixelcolor, fmode, srcrect) {
 		}
 	}
 
-	if (ig.game.painter.data.type === "dynamicThing") {
-		ig.game.painter.data.prop.text = `0s: cells show, cells 1+2+3 up 58, cells 4+5+6 up 29, cells 1+4+7 left 29, cells 3+6+9 right 29`;
-	}
-
 	if (!pixelcolor) {
 		img.quantize(56);
 	}
 	img.palettize();
-	write(frame(fmode, img, painterSize, painterSize, 1), img.palette);
+	write(frame(fmode, img, painterSize, painterSize, 9), img.palette);
+	if (ig.game.painter.data.type === "dynamicThing") {
+		ig.game.painter.data.prop.text = `0s: cells show, cells 1+2+3 up 58, cells 4+5+6 up 29, cells 1+4+7 left 29, cells 3+6+9 right 29`;
+	}
+}
+async function pixelCopyImages(urlarray, pixelart, pixelcolor) {
+	let painterSize = ig.game.painter.tileWidth;
+	let imgs = [];
+	try {
+		for (let i = 0; i < urlarray.length; i++) {
+			imgs.push(await Jimp.read(`https://api.allorigins.win/raw?url=${urlarray[i]}`));
+		}
+	} catch (e) {
+		return ["Error in Jimp.read(); on image number "+i,e];
+	}
+	let img = new Jimp(painterSize*imgs.length, painterSize, 0x00000000, (err, image) => {});
+	if (!pixelart) {
+		for (let i = 0; i < imgs.length; i++) {
+			await imgs[i].resize(painterSize, painterSize);
+		}
+	}
+	for (let i = 0; i < imgs.length; i++) {
+		await img.blit(imgs[i], i*painterSize, 0);
+	}
+	if (!pixelcolor) {
+		img.quantize(56)
+	}
+	img.palettize();
+	write(frame(1, img, painterSize, painterSize, 9));
+	if (ig.game.painter.data.type === "dynamicThing") {
+		ig.game.painter.data.prop.text = `0s: cell 1 show\n+0.1s: cells hide, cell 2 show\n+0.1s: cells hide, cell 3 show\n+0.1s: cells hide, cell 4 show\n+0.1s: cells hide, cell 5 show\n+0.1s: cells hide, cell 6 show\n+0.1s: cells hide, cell 7 show\n+0.1s: cells hide, cell 8 show\n+0.1s: cells hide, cell 9 show`;
+	}
 }
 
-return pixelCopyImage;
+return [pixelCopyImage, pixelCopyImages];
 })();
