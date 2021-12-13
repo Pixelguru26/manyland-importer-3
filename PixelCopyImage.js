@@ -316,7 +316,7 @@ async function pixelCopyImages(urlarray, pixelart, pixelcolor) {
 		img.quantize(56)
 	}
 	img.palettize();
-	write(frame(1, img, painterSize, painterSize, 9));
+	write(frame(1, img, painterSize, painterSize, 9), img.palette);
 	if (ig.game.painter.data.type === "dynamicThing") {
 		ig.game.painter.data.prop.text = `0s: cell 1 show\n+0.1s: cells hide, cell 2 show\n+0.1s: cells hide, cell 3 show\n+0.1s: cells hide, cell 4 show\n+0.1s: cells hide, cell 5 show\n+0.1s: cells hide, cell 6 show\n+0.1s: cells hide, cell 7 show\n+0.1s: cells hide, cell 8 show\n+0.1s: cells hide, cell 9 show`;
 	}
