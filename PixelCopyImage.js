@@ -296,7 +296,9 @@ async function pixelCopyImages(urlarray, pixelart, pixelcolor) {
 	let imgs = [];
 	try {
 		for (let i = 0; i < urlarray.length; i++) {
-			imgs.push(await Jimp.read(`https://api.allorigins.win/raw?url=${urlarray[i]}`));
+			let img = await Jimp.read(`https://api.allorigins.win/raw?url=${urlarray[i]}`);
+			img = new image(img);
+			imgs.push(img);
 		}
 	} catch (e) {
 		return ["Error in Jimp.read(); on image number "+i,e];
