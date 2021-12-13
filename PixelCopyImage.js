@@ -287,7 +287,7 @@ async function pixelCopyImage(url, pixelart, pixelcolor, fmode, srcrect) {
 		switch(fmode) {
 			case 1:
 				if (ig.game.painter.data.type === "dynamicThing") {
-					await img.resize(painterSize * 9, painterSize);
+					await img.resize(Jimp.AUTO, painterSize);
 				} else {
 					await img.resize(painterSize, painterSize);
 				}

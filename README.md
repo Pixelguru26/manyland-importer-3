@@ -24,4 +24,11 @@ An explanation of each parameter is as follows:
   - `framingmode` (enum): An enum defining the framing mode to use for animations or multi-frame images. Valid inputs are: ['mli', 'row']. The `mli` framing mode is the default built for importing large images. The `row` framing mode imports frames in reading order, a row at a time. (wip)
   - `srcrect` (array of number): An array of four numbers defining `x`, `y`, `width`, and `height` of a rectangle as a fraction of the original image dimensions. Crops the image to these dimensions.
 
+Recently, a new function has been added for importing multiple images into a dynamic (or other multi-framed object) simultaneously. You can use the following function to do this:
+
+`pixelCopyImages(string[] urlarray[, bool pixelart[, bool pixelcolor]]);`
+`pixelCopyImages(['url1', 'url2', 'url3'], false, false);`
+
+Do note that this function imports each image as a separate frame and resizes them appropriately. Parameters are similar to the corresponding parameters of the base function.
+
 If you get strange errors, it's often a problem with the URL. Try a different hosting service for the image before posting an error report - but do please post an error report! This script is still wracked with bugs.
