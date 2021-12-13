@@ -312,6 +312,7 @@ async function pixelCopyImages(urlarray, pixelart, pixelcolor) {
 	for (let i = 0; i < imgs.length; i++) {
 		await img.blit(imgs[i], i*painterSize, 0);
 	}
+	img = new image(img);
 	if (!pixelcolor) {
 		img.quantize(56)
 	}
