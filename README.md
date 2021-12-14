@@ -1,7 +1,8 @@
 # Manyland Importer 3
 MLI 3 is a browser console script for importing images into the Manyland editor.
 
-This is a rewrite of Zoltar's original PixelCopyImage: https://pastebin.com/N4mQPx5m
+This is a complete rewrite of Zoltar's original PixelCopyImage: https://pastebin.com/N4mQPx5m
+
 If the original creator wishes me to take this down, give further credit, etc., I will, no questions asked.
 
 Usage is simple:
