@@ -1,11 +1,13 @@
-var [pixelCopyImage, pixelCopyImages] = (async () => {
+(async () => {
 // Libraries and requirements
 	// Getting Quantization Algorithm
 	if (typeof MMCQ === 'undefined') {
-		fetch('https://api.allorigins.win/get?url=https://pastebin.com/raw/KzvbVdd6').then(resp => resp.text()).then(script => {
+		fetch('https://api.allorigins.win/get?url=https://pastebin.com/raw/KzvbVdd6').then(
+			resp => resp.text()
+		).then(script => {
 			let importer = JSON.parse(script);
-	//     consoleref.log(importer.contents);
-			 mm = document.createElement('script');
+			// consoleref.log(importer.contents);
+			mm = document.createElement('script');
 			mm.innerHTML = importer.contents;
 			$('body')[0].appendChild(mm);
 		})
