@@ -1,4 +1,4 @@
-var [pixelCopyImage, pixelCopyImages] = await (async () => {
+var [pixelCopyImage, pixelCopyImages] = (async () => {
 // Libraries and requirements
 	// Getting Quantization Algorithm
 	if (typeof MMCQ === 'undefined') {
