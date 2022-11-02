@@ -4,7 +4,7 @@ if (typeof(pixelCopyImage) === 'undefined') {
 	).then(
 		script => {
 			pci = document.createElement('script');
-			pci.innerHTML = 'Promise.resolve((async () => {'+script+'})());';
+			pci.innerHTML = 'Promise.resolve((async () => {\n'+script+'\n})());';
 			$('body')[0].appendChild(pci);
 		}
 	);

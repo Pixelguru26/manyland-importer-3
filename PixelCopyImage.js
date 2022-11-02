@@ -359,3 +359,4 @@ async function pixelCopyJimp(jImage, pixelcolor, fmode) {
 
 return [pixelCopyImage, pixelCopyImages];
 })();
+consoleref.log("MLI 3 enabled.");
