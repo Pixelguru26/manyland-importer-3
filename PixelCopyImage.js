@@ -1,4 +1,4 @@
-[pixelCopyImage, pixelCopyImages] = await (async () => {
+[pixelCopyImage, pixelCopyFrames, pixelCopyImages] = await (async () => {
 // Libraries and requirements
 	// Getting Quantization Algorithm
 	if (typeof MMCQ === 'undefined') {
@@ -217,7 +217,7 @@ function frame(fmode, img, framew, frameh, frames) {
 			}
 		}
 	}
-	debug = ret;
+	// debug = ret;
 	return ret;
 }
 
@@ -262,6 +262,20 @@ function validatefmode(fmode) {
 	return fmode;
 }
 
+async function readImage(url) {
+	let img = null;
+	try {
+		img = await Jimp.read(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+	} catch (e1) {
+		try {
+			img = await Jimp.read(url);
+		} catch (e2) {
+			throw ["All attempts to read image failed.", e1, e2];
+		}
+	}
+	return new Image(img);
+}
+
 const dynamicCodes = [
 	`0s: cells show, cells 1+2+3 up 58, cells 4+5+6 up 29, cells 1+4+7 left 29, cells 3+6+9 right 29`,
 	`0s: cell 1 show\n+0.1s: cells hide, cell 2 show\n+0.1s: cells hide, cell 3 show\n+0.1s: cells hide, cell 4 show\n+0.1s: cells hide, cell 5 show\n+0.1s: cells hide, cell 6 show\n+0.1s: cells hide, cell 7 show\n+0.1s: cells hide, cell 8 show\n+0.1s: cells hide, cell 9 show\n+0.1s: restart`
@@ -272,14 +286,12 @@ async function pixelCopyImage(url, pixelart, pixelcolor, fmode, srcrect) {
 	fmode = validatefmode(fmode);
 	let painterSize = ig.game.painter.tileWidth;
 
-	// Load image
-	let img = null;
-	try {
-		img = await Jimp.read(`https://api.allorigins.win/raw?url=${url}`);
-	} catch (e) {
-		return ["Error in Jimp.read();",e];
+	let img = await readImage(url);
+	
+	if (!pixelcolor) {
+		img.quantize(56);
 	}
-	img = new image(img);
+	img.palettize();
 
 	// Resizing (in case of large images)
 	if (srcrect) {
@@ -304,26 +316,49 @@ async function pixelCopyImage(url, pixelart, pixelcolor, fmode, srcrect) {
 		}
 	}
 
-	if (!pixelcolor) {
-		img.quantize(56);
-	}
-	img.palettize();
 	write(frame(fmode, img, painterSize, painterSize, 9), img.palette);
 	if (ig.game.painter.data.type === "dynamicThing") {
 		ig.game.painter.data.prop.text = dynamicCodes[fmode]??``;
 	}
 }
+async function pixelCopyFrames(url, frames, pixelcolor) {
+	let painterSize = ig.game.painter.tileWidth;
+
+	// load image
+	let img = await readImage(url);
+
+	if (!pixelcolor) {
+		img.quantize(56);
+	}
+	img.palettize();
+
+	for (let i = 0; i < frames.count; i++) {
+		frames[i][0] = frames[i][0] * img.w; // x
+		frames[i][1] = frames[i][1] * img.w; // y
+		frames[i][2] = frames[i][2] * img.w; // w
+		frames[i][3] = frames[i][3] * img.w; // h
+	}
+
+	let framedata = [];
+	let index;
+	for (let i = 0; Math.max(0,Math.min(frames.length, 9)); i++) {
+		framedata.push([]);
+		for (let y = 0; y < frames[i][3]; y++) {
+			framedata[i].push([]);
+			for (let x = 0; x < frames[i][2]; x++) {
+				index = img.getPixelPIndex(x + frames[i][0], y + frames[i][1]);
+				framedata[i][y].push(index);
+			}
+		}
+	}
+	write(framedata, img.palette);
+}
 async function pixelCopyImages(urlarray, pixelart, pixelcolor) {
 	let painterSize = ig.game.painter.tileWidth;
 	let imgs = [];
-	try {
-		for (let i = 0; i < urlarray.length; i++) {
-			let img = await Jimp.read(`https://api.allorigins.win/raw?url=${urlarray[i]}`);
-			img = new image(img);
-			imgs.push(img);
-		}
-	} catch (e) {
-		return ["Error in Jimp.read(); on image number "+i,e];
+	for (let i = 0; i < urlarray.length; i++) {
+		let img = await readImage(urlarray[i]);
+		imgs.push(img);
 	}
 	let img = new image(new Jimp(painterSize*imgs.length, painterSize, 0x00000000, (err, image) => {}));
 	if (!pixelart) {
@@ -357,6 +392,6 @@ async function pixelCopyJimp(jImage, pixelcolor, fmode) {
 	}
 }
 
-return [pixelCopyImage, pixelCopyImages];
+return [pixelCopyImage, pixelCopyFrames, pixelCopyImages];
 })();
 consoleref.log("MLI 3 enabled.");
