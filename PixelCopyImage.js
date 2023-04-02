@@ -273,7 +273,7 @@ async function readImage(url) {
 			throw ["All attempts to read image failed.", e1, e2];
 		}
 	}
-	return new Image(img);
+	return new image(img);
 }
 
 const dynamicCodes = [
@@ -288,11 +288,6 @@ async function pixelCopyImage(url, pixelart, pixelcolor, fmode, srcrect) {
 
 	let img = await readImage(url);
 	
-	if (!pixelcolor) {
-		img.quantize(56);
-	}
-	img.palettize();
-
 	// Resizing (in case of large images)
 	if (srcrect) {
 		img.crop(srcrect[0] * img.w, srcrect[1] * img.h, srcrect[2] * img.w, srcrect[3] * img.h);
@@ -315,8 +310,13 @@ async function pixelCopyImage(url, pixelart, pixelcolor, fmode, srcrect) {
 				break;
 		}
 	}
-
+	if (!pixelcolor) {
+		img.quantize(56);
+	}
+	
+	img.palettize();
 	write(frame(fmode, img, painterSize, painterSize, 9), img.palette);
+	
 	if (ig.game.painter.data.type === "dynamicThing") {
 		ig.game.painter.data.prop.text = dynamicCodes[fmode]??``;
 	}
